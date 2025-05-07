@@ -15,6 +15,10 @@ class SignUpScreen extends StatefulWidget {
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
 }
+// --- State variables ---
+String? _verificationCode;
+
+
 
 // --- _SignUpScreenState ---
 class _SignUpScreenState extends State<SignUpScreen> with TickerProviderStateMixin {
@@ -31,6 +35,8 @@ class _SignUpScreenState extends State<SignUpScreen> with TickerProviderStateMix
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool showEmailCodeField = false;
+  bool showPhoneCodeField = false;
 
   // Error text state
   String? _fullNameError;
@@ -256,57 +262,56 @@ class _SignUpScreenState extends State<SignUpScreen> with TickerProviderStateMix
   // --- "Get Code" Handlers ---
 
   void _handleGetEmailCode() {
-    // 1. Validate the email field first
     _validateEmailLive(_emailController.text);
-    final currentEmailError = _emailError; // Capture error state *after* validation
+    final currentEmailError = _emailError;
 
     if (_emailController.text.isNotEmpty && currentEmailError == null) {
-      // 2. If email is valid, proceed (e.g., call API)
-      print("Requesting code for email: ${_emailController.text}");
-      // --- TODO: Implement your API call to send email code ---
+      setState(() {
+        _verificationCode = (100000 + math.Random().nextInt(900000)).toString();
+        showEmailCodeField = true;
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sending email code... (Placeholder)'), backgroundColor: Colors.blue),
+        SnackBar(content: Text('Verification code sent: $_verificationCode'), backgroundColor: Colors.blue),
       );
+
+      print("Verification code sent: $_verificationCode");
     } else {
-      // 3. If email is invalid, show error and shake
-      if (currentEmailError != null) {
-        setState(() => _emailErrorOpacity = 1.0);
-        _emailShakeController.forward(from: 0);
-        _startErrorTimer(() => setState(() => _emailErrorOpacity = 0.0), _emailErrorTimerNotifier);
-      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(currentEmailError ?? 'Please enter a valid email first'), backgroundColor: Colors.orange),
       );
     }
   }
 
-  void _handleGetPhoneCode() {
-    // 1. Validate the phone field first
-    _validatePhoneLive(_phoneController.text);
-    final currentPhoneError = _phoneError; // Capture error state *after* validation
 
-    if (_phoneController.text.isNotEmpty && currentPhoneError == null) {
-      // 2. If phone is valid, proceed (e.g., call API)
-      print("Requesting code for phone: $_selectedCountryCode${_phoneController.text}");
-      // --- TODO: Implement your API call to send phone code ---
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sending phone code... (Placeholder)'), backgroundColor: Colors.blue),
-      );
-    } else {
-      // 3. If phone is invalid, show error and shake
-      if (currentPhoneError != null) {
-        setState(() => _phoneErrorOpacity = 1.0);
-        _phoneShakeController.forward(from: 0);
-        _startErrorTimer(() => setState(() => _phoneErrorOpacity = 0.0), _phoneErrorTimerNotifier);
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(currentPhoneError ?? 'Please enter a valid phone number first'), backgroundColor: Colors.orange),
-      );
+void _handleGetPhoneCode() {
+  _validatePhoneLive(_phoneController.text);
+  final currentPhoneError = _phoneError;
+
+  if (_phoneController.text.isNotEmpty && currentPhoneError == null) {
+    setState(() {
+      showPhoneCodeField = true; // ⬅️ Add this line
+    });
+
+    print("Requesting code for phone: $_selectedCountryCode${_phoneController.text}");
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Sending phone code... (Placeholder)'), backgroundColor: Colors.blue),
+    );
+  } else {
+    if (currentPhoneError != null) {
+      setState(() => _phoneErrorOpacity = 1.0);
+      _phoneShakeController.forward(from: 0);
+      _startErrorTimer(() => setState(() => _phoneErrorOpacity = 0.0), _phoneErrorTimerNotifier);
     }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(currentPhoneError ?? 'Please enter a valid phone number first'), backgroundColor: Colors.orange),
+    );
   }
+}
 
 
-  // --- Sign Up Logic ---
+
+// --- Sign Up Logic ---
   Future<void> _signUp() async {
     // Hide all previous errors first
     setState(() {
@@ -389,7 +394,7 @@ class _SignUpScreenState extends State<SignUpScreen> with TickerProviderStateMix
       final password = _passwordController.text;
       final countryCode = _selectedCountryCode; // Country code
 
-      const url = 'http://192.168.239.136/eduledger_backend/logup.php';
+      const url = 'http://192.168.85.236/eduledger_backend/logup.php';
 
       try {
         final response = await http.post(
@@ -755,11 +760,16 @@ class _SignUpScreenState extends State<SignUpScreen> with TickerProviderStateMix
 
                                     // --- Email Field with Get Code Button ---
                                     _buildTextFieldWithShake(
-                                      _emailController, 'Email ID', _emailError, _emailErrorOpacity, _emailShakeController, _validateEmailLive, baseFontSize,
+                                      _emailController,
+                                      'Email ID',
+                                      _emailError,
+                                      _emailErrorOpacity,
+                                      _emailShakeController,
+                                      _validateEmailLive,
+                                      baseFontSize,
                                       keyboardType: TextInputType.emailAddress,
-                                      // Suffix Icon is the "Get Code" button
                                       suffixIcon: Padding(
-                                        padding: EdgeInsets.only(right: baseFontSize * 0.5), // Padding for the button
+                                        padding: EdgeInsets.only(right: baseFontSize * 0.5),
                                         child: TextButton(
                                           onPressed: _handleGetEmailCode, // Call the email code handler
                                           style: TextButton.styleFrom(
@@ -772,14 +782,33 @@ class _SignUpScreenState extends State<SignUpScreen> with TickerProviderStateMix
                                         ),
                                       ),
                                     ),
+
                                     SizedBox(height: spacing * 0.5), // Reduced spacing
 
                                     // --- Email Verification Code Field ---
-                                    _buildTextFieldWithShake(
-                                        _emailCodeController, 'Email Verification Code', _emailCodeError, _emailCodeErrorOpacity, _emailCodeShakeController, _validateEmailCodeLive, baseFontSize,
-                                        keyboardType: TextInputType.number, // Usually numeric
-                                        isDense: true // Make it slightly more compact if needed
-                                    ),
+                                    if (showEmailCodeField)
+                                      _buildTextFieldWithShake(
+                                        _emailCodeController,
+                                        'Email Verification Code',
+                                        _emailCodeError,
+                                        _emailCodeErrorOpacity,
+                                        _emailCodeShakeController,
+                                        _validateEmailCodeLive,
+                                        baseFontSize,
+                                        keyboardType: TextInputType.number,
+                                        isDense: true,
+                                      ),
+
+// Display the generated verification code for testing (remove this in production)
+                                    if (_verificationCode != null)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 10),
+                                        child: Text(
+                                          "Your verification code is: $_verificationCode",
+                                          style: TextStyle(fontSize: baseFontSize * 0.9, color: Colors.blue),
+                                        ),
+                                      ),
+
                                     SizedBox(height: spacing * 0.5), // Reduced spacing
 
                                     // --- Phone Field ---
@@ -788,11 +817,18 @@ class _SignUpScreenState extends State<SignUpScreen> with TickerProviderStateMix
                                     SizedBox(height: spacing * 0.5), // Reduced spacing
 
                                     // --- Phone Verification Code Field ---
-                                    _buildTextFieldWithShake(
-                                        _phoneCodeController, 'Phone Verification Code', _phoneCodeError, _phoneCodeErrorOpacity, _phoneCodeShakeController, _validatePhoneCodeLive, baseFontSize,
-                                        keyboardType: TextInputType.number, // Usually numeric
-                                        isDense: true // Make it slightly more compact
-                                    ),
+                                    if (showPhoneCodeField)
+                                      _buildTextFieldWithShake(
+                                        _phoneCodeController,
+                                        'Phone Verification Code',
+                                        _phoneCodeError,
+                                        _phoneCodeErrorOpacity,
+                                        _phoneCodeShakeController,
+                                        _validatePhoneCodeLive,
+                                        baseFontSize,
+                                        keyboardType: TextInputType.number,
+                                        isDense: true,
+                                      ),
                                     SizedBox(height: spacing * 0.5), // Reduced spacing
 
                                     // --- Password Field ---
