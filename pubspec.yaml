@@ -1,0 +1,44 @@
+name: eduledger
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  animated_text_kit: ^4.2.1
+  provider: ^6.0.5
+  shared_preferences: ^2.2.0
+  cupertino_icons: ^1.0.8
+  http: ^0.13.6
+  flutter_screenutil: ^5.8.4
+  intl_phone_number_input: ^0.7.4
+  country_code_picker: ^3.3.0
+  modal_bottom_sheet: 2.1.2
+  vector_math: 2.1.4
+  vm_service: 14.3.1
+  
+
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/logo.png"
+
